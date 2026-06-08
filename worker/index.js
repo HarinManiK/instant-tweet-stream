@@ -49,7 +49,8 @@ async function loadHandles() {
       userId = await resolveHandleToId(doc.id);
       if (userId) await doc.ref.set({ userId }, { merge: true });
     }
-    if (userId) list.push({ handle: doc.id, userId });
+    // Always push, userId is not strictly needed for the 'from:' stream rule
+    list.push({ handle: doc.id, userId });
   }
   return list;
 }
