@@ -12,4 +12,7 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // When this repo is built outside Lovable, emit Vercel's Build Output API format.
+  // Lovable's own publish pipeline still uses its managed deployment target.
+  nitro: { preset: "vercel" },
 });
