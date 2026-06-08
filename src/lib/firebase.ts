@@ -8,15 +8,16 @@ import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "PASTE_apiKey_HERE",
-  authDomain: "PASTE_authDomain_HERE",
-  projectId: "PASTE_projectId_HERE",
-  storageBucket: "PASTE_storageBucket_HERE",
-  messagingSenderId: "PASTE_messagingSenderId_HERE",
-  appId: "PASTE_appId_HERE",
+  apiKey: "AIzaSyBcs_X_dLJ0Hzh8jod-oaER90urhW9QauU",
+  authDomain: "xmonitor1-ea520.firebaseapp.com",
+  projectId: "xmonitor1-ea520",
+  storageBucket: "xmonitor1-ea520.firebasestorage.app",
+  messagingSenderId: "86533923093",
+  appId: "1:86533923093:web:3d7bd74d1c7249abc1c91c",
+  measurementId: "G-BP3CB27EX8",
 };
 
-export const isFirebaseConfigured = !firebaseConfig.apiKey.startsWith("PASTE_");
+export const isFirebaseConfigured = true;
 
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
