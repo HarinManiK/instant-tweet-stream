@@ -170,12 +170,9 @@ async function startStream() {
       autoConnect: false,
     });
 
-    currentStream.on(ETwitterStreamEvent.Data, async (payload) => {
-      try {
-        await writeTweet(payload);
-      } catch (e) {
-        console.error("writeTweet failed:", e.message);
-      }
+    currentStream.on(ETwitterStreamEvent.Data, (payload) => {
+      // Fire-and-forget: don't block the stream handler on Firestore writes.
+      writeTweet(payload).catch((e) => console.error("writeTweet failed:", e.message));
     });
     currentStream.on(ETwitterStreamEvent.ConnectionError, (err) => {
       console.error("Stream connection error:", err);
