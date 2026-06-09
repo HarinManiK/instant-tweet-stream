@@ -171,7 +171,7 @@ async function startStream() {
     });
 
     currentStream.on(ETwitterStreamEvent.Data, (payload) => {
-      // Fire-and-forget: don't block the stream handler on Firestore writes.
+      if (!streaming) return; // drop any in-flight tweets after stop
       writeTweet(payload).catch((e) => console.error("writeTweet failed:", e.message));
     });
     currentStream.on(ETwitterStreamEvent.ConnectionError, (err) => {
