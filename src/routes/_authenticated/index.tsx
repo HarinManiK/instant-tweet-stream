@@ -29,9 +29,13 @@ function FeedPage() {
     const db = getDb();
     if (!db) return;
     const q = query(collection(db, "tweets"), orderBy("capturedAt", "desc"), limit(100));
-    const unsub = onSnapshot(q, (snap) => {
-      setTweets(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Tweet, "id">) })));
-    });
+    const unsub = onSnapshot(
+      q,
+      { includeMetadataChanges: false },
+      (snap) => {
+        setTweets(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Tweet, "id">) })));
+      },
+    );
     return () => unsub();
   }, []);
 
