@@ -199,9 +199,9 @@ async function stopStream() {
   streaming = false; // immediately drop any in-flight Data events
   try {
     if (currentStream) {
-      // close() + destroy() prevents autoReconnect from resurrecting the stream
-      try { currentStream.close(); } catch {}
-      try { currentStream.destroy?.(); } catch {}
+      // Prevent autoReconnect from resurrecting the stream by silencing events and unbinding timeouts
+      try { currentStream.autoReconnectRetries = 0; } catch {}
+      try { currentStream.closeWithoutEmit?.() || currentStream.close(); } catch {}
       currentStream = null;
     }
     // Remove rules so X stops pushing tweets to this app entirely
