@@ -196,15 +196,24 @@ async function startStream() {
 async function stopStream() {
   if (!streaming) return;
   console.log("Stopping stream…");
+  streaming = false; // immediately drop any in-flight Data events
   try {
     if (currentStream) {
-      currentStream.close();
+      // close() + destroy() prevents autoReconnect from resurrecting the stream
+      try { currentStream.close(); } catch {}
+      try { currentStream.destroy?.(); } catch {}
       currentStream = null;
+    }
+    // Remove rules so X stops pushing tweets to this app entirely
+    const existing = await twitter.v2.streamRules();
+    if (existing.data?.length) {
+      await twitter.v2.updateStreamRules({
+        delete: { ids: existing.data.map((r) => r.id) },
+      });
     }
   } catch (e) {
     console.error("stopStream error:", e.message);
   }
-  streaming = false;
   await db.doc("stream_state/main").set({ status: "stopped" }, { merge: true });
 }
 
