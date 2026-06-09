@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   collection,
   limit,
@@ -25,6 +25,12 @@ function FeedPage() {
   const navigate = useNavigate();
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [loading, setLoading] = useState(true);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const initialLoadRef = useRef(true);
+
+  useEffect(() => {
+    audioRef.current = new Audio("/notification_sound.mp3");
+  }, []);
 
   useEffect(() => {
     const db = getDb();
@@ -39,6 +45,15 @@ function FeedPage() {
       (snap) => {
         setTweets(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Tweet, "id">) })));
         setLoading(false);
+
+        if (initialLoadRef.current) {
+          initialLoadRef.current = false;
+        } else {
+          const hasNew = snap.docChanges().some(change => change.type === "added");
+          if (hasNew && audioRef.current) {
+            audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+          }
+        }
       },
     );
     return () => unsub();
