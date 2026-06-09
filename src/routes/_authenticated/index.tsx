@@ -24,16 +24,21 @@ export const Route = createFileRoute("/_authenticated/")({
 function FeedPage() {
   const navigate = useNavigate();
   const [tweets, setTweets] = useState<Tweet[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const db = getDb();
-    if (!db) return;
+    if (!db) {
+      setLoading(false);
+      return;
+    }
     const q = query(collection(db, "tweets"), orderBy("capturedAt", "desc"), limit(100));
     const unsub = onSnapshot(
       q,
       { includeMetadataChanges: false },
       (snap) => {
         setTweets(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Tweet, "id">) })));
+        setLoading(false);
       },
     );
     return () => unsub();
@@ -76,12 +81,19 @@ function FeedPage() {
         </section>
 
         <section className="space-y-3">
-          {tweets.length === 0 && isFirebaseConfigured && (
+          {loading && isFirebaseConfigured && (
+            <div className="flex animate-pulse flex-col space-y-4">
+              <div className="h-32 w-full rounded-xl bg-muted" />
+              <div className="h-32 w-full rounded-xl bg-muted" />
+              <div className="h-32 w-full rounded-xl bg-muted" />
+            </div>
+          )}
+          {!loading && tweets.length === 0 && isFirebaseConfigured && (
             <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
               No tweets yet. Add a handle, then hit Start.
             </div>
           )}
-          {tweets.map((t) => (
+          {!loading && tweets.map((t) => (
             <TweetCard key={t.id} tweet={t} />
           ))}
         </section>

@@ -16,10 +16,14 @@ export function HandleManager() {
   const [handles, setHandles] = useState<FollowedHandle[]>([]);
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const db = getDb();
-    if (!db) return;
+    if (!db) {
+      setLoading(false);
+      return;
+    }
     const q = query(collection(db, "followed_handles"), orderBy("addedAt", "desc"));
     const unsub = onSnapshot(
       q,
@@ -27,8 +31,12 @@ export function HandleManager() {
         setHandles(
           snap.docs.map((d) => ({ handle: d.id, ...(d.data() as Omit<FollowedHandle, "handle">) })),
         );
+        setLoading(false);
       },
-      (err) => setError(err.message),
+      (err) => {
+        setError(err.message);
+        setLoading(false);
+      },
     );
     return () => unsub();
   }, []);
@@ -81,10 +89,16 @@ export function HandleManager() {
       {error && <p className="text-xs text-destructive">{error}</p>}
 
       <div className="flex flex-wrap gap-2">
-        {handles.length === 0 && (
+        {loading && (
+          <>
+            <span className="inline-flex h-6 w-20 animate-pulse rounded-full bg-muted"></span>
+            <span className="inline-flex h-6 w-24 animate-pulse rounded-full bg-muted"></span>
+          </>
+        )}
+        {!loading && handles.length === 0 && (
           <p className="text-xs text-muted-foreground">No handles yet. Add one above.</p>
         )}
-        {handles.map((h) => (
+        {!loading && handles.map((h) => (
           <span
             key={h.handle}
             className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs text-secondary-foreground"
