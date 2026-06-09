@@ -2,7 +2,7 @@ import type { Tweet } from "@/lib/types";
 
 export function TweetCard({ tweet }: { tweet: Tweet }) {
   return (
-    <article className="animate-in fade-in slide-in-from-top-2 duration-300 rounded-xl border border-border bg-card p-4 shadow-sm">
+    <article className="animate-in fade-in duration-100 rounded-xl border border-border bg-card p-4 shadow-sm">
       <header className="flex items-center gap-3">
         {tweet.authorAvatar ? (
           <img
