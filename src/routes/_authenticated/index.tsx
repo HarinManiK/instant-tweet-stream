@@ -26,11 +26,19 @@ function FeedPage() {
   const navigate = useNavigate();
   const [tweets, setTweets] = useState<Tweet[]>([]);
   const [loading, setLoading] = useState(true);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const audioBufRef = useRef<AudioBuffer | null>(null);
   const initialLoadRef = useRef(true);
 
   useEffect(() => {
-    audioRef.current = new Audio("/notification_sound.mp3");
+    const ctx = new AudioContext();
+    audioCtxRef.current = ctx;
+    fetch("/notification_sound.mp3")
+      .then((r) => r.arrayBuffer())
+      .then((buf) => ctx.decodeAudioData(buf))
+      .then((decoded) => { audioBufRef.current = decoded; })
+      .catch((e) => console.error("Failed to load notification sound:", e));
+    return () => { ctx.close(); };
   }, []);
 
   useEffect(() => {
@@ -51,8 +59,13 @@ function FeedPage() {
           initialLoadRef.current = false;
         } else {
           const hasNew = snap.docChanges().some(change => change.type === "added");
-          if (hasNew && audioRef.current) {
-            audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+          if (hasNew && audioBufRef.current && audioCtxRef.current) {
+            const ctx = audioCtxRef.current;
+            if (ctx.state === "suspended") ctx.resume();
+            const src = ctx.createBufferSource();
+            src.buffer = audioBufRef.current;
+            src.connect(ctx.destination);
+            src.start();
           }
         }
       },
