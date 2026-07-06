@@ -4,7 +4,10 @@ import type { Tweet } from "@/lib/types";
 
 function stripMediaUrls(text: string, hasMedia: boolean): string {
   if (!hasMedia) return text;
-  return text.replace(/https?:\/\/t\.co\/\w+/g, "").trimEnd();
+  return text
+    .replace(/https?:\/\/t\.co\/\w+/g, "")
+    .replace(/https?:\/\/(?:x|twitter)\.com\/\S+\/(?:video|photo)\/\d+/g, "")
+    .trimEnd();
 }
 
 export function TweetCard({ tweet }: { tweet: Tweet }) {

@@ -128,7 +128,7 @@ async function writeTweet(payload) {
   const handle = author?.username ?? "";
   const doc = {
     id: t.id,
-    text: t.text ?? "",
+    text: t.note_tweet?.text ?? t.text ?? "",
     createdAt: t.created_at ?? new Date().toISOString(),
     authorHandle: handle,
     authorName: author?.name ?? handle,
@@ -163,7 +163,7 @@ async function startStream() {
     );
 
     currentStream = await twitter.v2.searchStream({
-      "tweet.fields": ["created_at", "author_id", "attachments"],
+      "tweet.fields": ["created_at", "author_id", "attachments", "note_tweet"],
       "user.fields": ["name", "username", "profile_image_url"],
       "media.fields": ["url", "preview_image_url", "variants", "type", "width", "height"],
       expansions: ["author_id", "attachments.media_keys"],
