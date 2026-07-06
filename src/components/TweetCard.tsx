@@ -1,83 +1,118 @@
+import { useState } from "react";
+import { X } from "lucide-react";
 import type { Tweet } from "@/lib/types";
 
+function stripMediaUrls(text: string, hasMedia: boolean): string {
+  if (!hasMedia) return text;
+  return text.replace(/https?:\/\/t\.co\/\w+/g, "").trimEnd();
+}
+
 export function TweetCard({ tweet }: { tweet: Tweet }) {
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const hasMedia = tweet.media && tweet.media.length > 0;
+  const cleanText = tweet.text ? stripMediaUrls(tweet.text, !!hasMedia) : "";
+
   return (
-    <article className="animate-in fade-in duration-100 rounded-xl border border-border bg-card p-4 shadow-sm">
-      <header className="flex items-center gap-3">
-        {tweet.authorAvatar ? (
-          <img
-            src={tweet.authorAvatar}
-            alt=""
-            className="h-10 w-10 rounded-full object-cover"
-          />
-        ) : (
-          <div className="h-10 w-10 rounded-full bg-muted" />
+    <>
+      <article className="animate-in fade-in duration-100 rounded-xl border border-border bg-card p-4 shadow-sm">
+        <header className="flex items-center gap-3">
+          {tweet.authorAvatar ? (
+            <img
+              src={tweet.authorAvatar}
+              alt=""
+              className="h-10 w-10 rounded-full object-cover"
+            />
+          ) : (
+            <div className="h-10 w-10 rounded-full bg-muted" />
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-semibold">{tweet.authorName}</div>
+            <a
+              href={tweet.tweetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="truncate text-xs text-muted-foreground hover:underline"
+            >
+              @{tweet.authorHandle} · {formatTime(tweet.createdAt)}
+            </a>
+          </div>
+        </header>
+
+        {cleanText && (
+          <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed">
+            {cleanText}
+          </p>
         )}
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold">{tweet.authorName}</div>
-          <a
-            href={tweet.tweetUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="truncate text-xs text-muted-foreground hover:underline"
+
+        {hasMedia && (
+          <div
+            className={`mt-3 grid gap-2 ${
+              tweet.media.length === 1 ? "grid-cols-1" : "grid-cols-2"
+            }`}
           >
-            @{tweet.authorHandle} · {formatTime(tweet.createdAt)}
-          </a>
-        </div>
-      </header>
-
-      {tweet.text && (
-        <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed">
-          {tweet.text}
-        </p>
-      )}
-
-      {tweet.media && tweet.media.length > 0 && (
-        <div
-          className={`mt-3 grid gap-2 ${
-            tweet.media.length === 1 ? "grid-cols-1" : "grid-cols-2"
-          }`}
-        >
-          {tweet.media.map((m, i) => {
-            if (m.type === "photo") {
-              return (
-                <img
-                  key={i}
-                  src={m.url}
-                  alt=""
-                  className="w-full rounded-lg border border-border object-cover"
-                  loading="lazy"
-                />
-              );
-            }
-            if (m.type === "video") {
+            {tweet.media.map((m, i) => {
+              if (m.type === "photo") {
+                return (
+                  <img
+                    key={i}
+                    src={m.url}
+                    alt=""
+                    className="w-full cursor-pointer rounded-lg border border-border object-cover transition-opacity hover:opacity-90"
+                    loading="lazy"
+                    onClick={() => setLightboxUrl(m.url)}
+                  />
+                );
+              }
+              if (m.type === "video") {
+                return (
+                  <video
+                    key={i}
+                    src={m.url}
+                    poster={m.previewUrl}
+                    controls
+                    playsInline
+                    className="w-full rounded-lg border border-border"
+                  />
+                );
+              }
               return (
                 <video
                   key={i}
                   src={m.url}
                   poster={m.previewUrl}
-                  controls
+                  autoPlay
+                  loop
+                  muted
                   playsInline
                   className="w-full rounded-lg border border-border"
                 />
               );
-            }
-            return (
-              <video
-                key={i}
-                src={m.url}
-                poster={m.previewUrl}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="w-full rounded-lg border border-border"
-              />
-            );
-          })}
+            })}
+          </div>
+        )}
+      </article>
+
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            onClick={() => setLightboxUrl(null)}
+            className="absolute right-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={lightboxUrl}
+            alt=""
+            className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
-    </article>
+    </>
   );
 }
 
