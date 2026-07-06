@@ -13,6 +13,7 @@ import type { Tweet } from "@/lib/types";
 import { TweetCard } from "@/components/TweetCard";
 import { HandleManager } from "@/components/HandleManager";
 import { StartStopButton } from "@/components/StartStopButton";
+import { SettingsPanel } from "@/components/SettingsPanel";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -117,6 +118,8 @@ function FeedPage() {
       <div className="fixed bottom-6 left-1/2 z-20 -translate-x-1/2">
         <StartStopButton />
       </div>
+
+      <SettingsPanel />
     </div>
   );
 }
