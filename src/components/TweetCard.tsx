@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
 import type { Tweet } from "@/lib/types";
 
 function stripMediaUrls(text: string, hasMedia: boolean): string {
@@ -30,15 +30,21 @@ export function TweetCard({ tweet }: { tweet: Tweet }) {
           )}
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-semibold">{tweet.authorName}</div>
+            <div className="truncate text-xs text-muted-foreground">
+              @{tweet.authorHandle} · {formatTime(tweet.createdAt)}
+            </div>
+          </div>
+          {tweet.tweetUrl && (
             <a
               href={tweet.tweetUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="truncate text-xs text-muted-foreground hover:underline"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              aria-label="View on X"
             >
-              @{tweet.authorHandle} · {formatTime(tweet.createdAt)}
+              <ExternalLink className="h-4 w-4" />
             </a>
-          </div>
+          )}
         </header>
 
         {cleanText && (
