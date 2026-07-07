@@ -87,10 +87,9 @@ async function setStreamRules(rules) {
   await twitter.v2.updateStreamRules({ add: rules });
 }
 
-function extractMedia(payload) {
+function extractMediaFromTweet(tweetData, includedMedia) {
   const result = [];
-  const mediaKeys = payload.data?.attachments?.media_keys ?? [];
-  const includedMedia = payload.includes?.media ?? [];
+  const mediaKeys = tweetData?.attachments?.media_keys ?? [];
   for (const key of mediaKeys) {
     const m = includedMedia.find((x) => x.media_key === key);
     if (!m) continue;
@@ -123,22 +122,59 @@ function extractMedia(payload) {
 async function writeTweet(payload) {
   const t = payload.data;
   if (!t) return;
-  const author = payload.includes?.users?.find((u) => u.id === t.author_id);
-  const media = extractMedia(payload);
-  const handle = author?.username ?? "";
+  const includedMedia = payload.includes?.media ?? [];
+  const includedTweets = payload.includes?.tweets ?? [];
+  const includedUsers = payload.includes?.users ?? [];
+
+  const retweetRef = t.referenced_tweets?.find((r) => r.type === "retweeted");
+  const isRetweet = !!retweetRef;
+
+  let text, author, media, handle, tweetId;
+
+  if (isRetweet) {
+    const original = includedTweets.find((tw) => tw.id === retweetRef.id);
+    if (original) {
+      text = original.note_tweet?.text ?? original.text ?? "";
+      author = includedUsers.find((u) => u.id === original.author_id);
+      media = extractMediaFromTweet(original, includedMedia);
+      handle = author?.username ?? "";
+      tweetId = original.id;
+    } else {
+      text = t.note_tweet?.text ?? t.text ?? "";
+      author = includedUsers.find((u) => u.id === t.author_id);
+      media = extractMediaFromTweet(t, includedMedia);
+      handle = author?.username ?? "";
+      tweetId = t.id;
+    }
+  } else {
+    text = t.note_tweet?.text ?? t.text ?? "";
+    author = includedUsers.find((u) => u.id === t.author_id);
+    media = extractMediaFromTweet(t, includedMedia);
+    handle = author?.username ?? "";
+    tweetId = t.id;
+  }
+
+  const retweeter = isRetweet ? includedUsers.find((u) => u.id === t.author_id) : null;
+
   const doc = {
     id: t.id,
-    text: t.note_tweet?.text ?? t.text ?? "",
+    text,
     createdAt: t.created_at ?? new Date().toISOString(),
     authorHandle: handle,
     authorName: author?.name ?? handle,
     authorAvatar: author?.profile_image_url?.replace("_normal", "_400x400") ?? "",
     media,
-    tweetUrl: handle ? `https://x.com/${handle}/status/${t.id}` : `https://x.com/i/status/${t.id}`,
+    tweetUrl: handle ? `https://x.com/${handle}/status/${tweetId}` : `https://x.com/i/status/${tweetId}`,
     capturedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
+
+  if (isRetweet && retweeter) {
+    doc.isRetweet = true;
+    doc.retweetedBy = retweeter.username ?? "";
+  }
+
   await db.collection("tweets").doc(t.id).set(doc);
-  console.log(`✓ Tweet ${t.id} from @${handle}`);
+  console.log(`✓ Tweet ${t.id} from @${handle}${isRetweet ? ` (RT by @${retweeter?.username})` : ""}`);
 }
 
 async function startStream() {
@@ -163,10 +199,10 @@ async function startStream() {
     );
 
     currentStream = await twitter.v2.searchStream({
-      "tweet.fields": ["created_at", "author_id", "attachments", "note_tweet"],
+      "tweet.fields": ["created_at", "author_id", "attachments", "note_tweet", "referenced_tweets"],
       "user.fields": ["name", "username", "profile_image_url"],
       "media.fields": ["url", "preview_image_url", "variants", "type", "width", "height"],
-      expansions: ["author_id", "attachments.media_keys"],
+      expansions: ["author_id", "attachments.media_keys", "referenced_tweets.id", "referenced_tweets.id.author_id"],
       autoConnect: false,
     });
 

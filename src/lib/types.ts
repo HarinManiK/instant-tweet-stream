@@ -16,6 +16,8 @@ export type Tweet = {
   media: MediaItem[];
   tweetUrl: string;
   capturedAt?: { seconds: number; nanoseconds: number } | null;
+  isRetweet?: boolean;
+  retweetedBy?: string;
 };
 
 export type FollowedHandle = {

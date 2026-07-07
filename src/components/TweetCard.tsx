@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ExternalLink, X } from "lucide-react";
+import { ExternalLink, Repeat2, X } from "lucide-react";
 import type { Tweet } from "@/lib/types";
 
 function stripMediaUrls(text: string, hasMedia: boolean): string {
@@ -18,6 +18,12 @@ export function TweetCard({ tweet }: { tweet: Tweet }) {
   return (
     <>
       <article className="animate-in fade-in duration-100 rounded-xl border border-border bg-card p-4 shadow-sm">
+        {tweet.isRetweet && tweet.retweetedBy && (
+          <div className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Repeat2 className="h-3.5 w-3.5" />
+            <span>@{tweet.retweetedBy} reposted</span>
+          </div>
+        )}
         <header className="flex items-center gap-3">
           {tweet.authorAvatar ? (
             <img
