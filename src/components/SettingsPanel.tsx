@@ -66,7 +66,7 @@ export function SettingsPanel() {
 
           <div className="flex items-center justify-between rounded-lg border border-border p-3">
             <div>
-              <p className="text-sm font-medium">Pay</p>
+              <p className="text-sm font-medium">Cost</p>
               <p className="text-xs text-muted-foreground">Estimated X API cost</p>
             </div>
             <span className="text-lg font-semibold tabular-nums">${(postCount * 0.0075).toFixed(2)}</span>
