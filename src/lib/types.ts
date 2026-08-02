@@ -20,6 +20,24 @@ export type Tweet = {
   retweetedBy?: string;
 };
 
+// A Discord message captured by the Feed Reader browser extension and handed to
+// this page through bridge.js. It never touches our server — see lib/discord.ts.
+export type DiscordMessage = {
+  id: string;
+  author: string;
+  content: string;
+  timestamp: string;
+  server: string;
+  channel: string;
+  replyToAuthor?: string;
+  replyToSnippet?: string;
+  channelUrl?: string;
+  source?: "discord";
+  /** Message time in ms, derived from the Discord snowflake id. Sort key. */
+  ts?: number;
+  capturedAt?: number;
+};
+
 export type FollowedHandle = {
   handle: string;
   userId?: string;

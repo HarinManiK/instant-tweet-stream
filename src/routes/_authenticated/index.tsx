@@ -1,77 +1,26 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, useRef } from "react";
-import {
-  collection,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-} from "firebase/firestore";
-import { getDb, isFirebaseConfigured } from "@/lib/firebase";
+import { useCallback, useEffect } from "react";
 import { logout } from "@/lib/auth";
-import type { Tweet } from "@/lib/types";
-import { TweetCard } from "@/components/TweetCard";
-import { HandleManager } from "@/components/HandleManager";
+import { initNotificationSound, playNotificationSound } from "@/lib/notification-sound";
+import { TweetColumn } from "@/components/TweetColumn";
+import { DiscordColumn } from "@/components/DiscordColumn";
 import { StartStopButton } from "@/components/StartStopButton";
 import { SettingsPanel } from "@/components/SettingsPanel";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
-    meta: [{ title: "Tweet Stream — Live Feed" }],
+    meta: [{ title: "Live Feed — X + Discord" }],
   }),
   component: FeedPage,
 });
 
 function FeedPage() {
   const navigate = useNavigate();
-  const [tweets, setTweets] = useState<Tweet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const audioBufRef = useRef<AudioBuffer | null>(null);
-  const initialLoadRef = useRef(true);
 
-  useEffect(() => {
-    const ctx = new AudioContext();
-    audioCtxRef.current = ctx;
-    fetch("/notification_sound.mp3")
-      .then((r) => r.arrayBuffer())
-      .then((buf) => ctx.decodeAudioData(buf))
-      .then((decoded) => { audioBufRef.current = decoded; })
-      .catch((e) => console.error("Failed to load notification sound:", e));
-    return () => { ctx.close(); };
-  }, []);
-
-  useEffect(() => {
-    const db = getDb();
-    if (!db) {
-      setLoading(false);
-      return;
-    }
-    const q = query(collection(db, "tweets"), orderBy("capturedAt", "desc"), limit(100));
-    const unsub = onSnapshot(
-      q,
-      { includeMetadataChanges: false },
-      (snap) => {
-        setTweets(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Tweet, "id">) })));
-        setLoading(false);
-
-        if (initialLoadRef.current) {
-          initialLoadRef.current = false;
-        } else {
-          const hasNew = snap.docChanges().some(change => change.type === "added");
-          if (hasNew && audioBufRef.current && audioCtxRef.current) {
-            const ctx = audioCtxRef.current;
-            if (ctx.state === "suspended") ctx.resume();
-            const src = ctx.createBufferSource();
-            src.buffer = audioBufRef.current;
-            src.connect(ctx.destination);
-            src.start();
-          }
-        }
-      },
-    );
-    return () => unsub();
-  }, []);
+  // One shared sound for both columns, owned here so the two feeds don't each
+  // spin up their own AudioContext.
+  useEffect(() => initNotificationSound(), []);
+  const ping = useCallback(() => playNotificationSound(), []);
 
   function handleLogout() {
     logout();
@@ -79,10 +28,10 @@ function FeedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
-          <h1 className="text-base font-semibold tracking-tight">Tweet Stream</h1>
+    <div className="flex h-screen flex-col bg-background text-foreground">
+      <header className="shrink-0 border-b border-border bg-background/80 backdrop-blur">
+        <div className="flex items-center justify-between px-4 py-3">
+          <h1 className="text-base font-semibold tracking-tight">Live Feed</h1>
           <button
             onClick={handleLogout}
             className="text-xs text-muted-foreground hover:text-foreground"
@@ -92,40 +41,10 @@ function FeedPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-4 pb-32 pt-6">
-        {!isFirebaseConfigured && (
-          <div className="mb-6 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm">
-            <p className="font-medium text-yellow-600 dark:text-yellow-400">
-              Firebase not configured
-            </p>
-            <p className="mt-1 text-muted-foreground">
-              Paste your Firebase web config into <code>src/lib/firebase.ts</code> to connect.
-            </p>
-          </div>
-        )}
-
-        <section className="mb-6 rounded-xl border border-border bg-card p-4">
-          <h2 className="mb-3 text-sm font-semibold">Followed accounts</h2>
-          <HandleManager />
-        </section>
-
-        <section className="space-y-3">
-          {loading && isFirebaseConfigured && (
-            <div className="flex animate-pulse flex-col space-y-4">
-              <div className="h-32 w-full rounded-xl bg-muted" />
-              <div className="h-32 w-full rounded-xl bg-muted" />
-              <div className="h-32 w-full rounded-xl bg-muted" />
-            </div>
-          )}
-          {!loading && tweets.length === 0 && isFirebaseConfigured && (
-            <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              No tweets yet. Add a handle, then hit Start.
-            </div>
-          )}
-          {!loading && tweets.map((t) => (
-            <TweetCard key={t.id} tweet={t} />
-          ))}
-        </section>
+      {/* Two independently scrolling columns: X on the left, Discord on the right. */}
+      <main className="grid min-h-0 flex-1 grid-cols-2 gap-4 p-4">
+        <TweetColumn onNewTweet={ping} />
+        <DiscordColumn onNewMessage={ping} />
       </main>
 
       <div className="fixed bottom-6 left-1/2 z-20 -translate-x-1/2">

@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "Feed Reader",
+  "version": "2.0.0",
+  "description": "Captures Discord messages on your own device and streams them into your live feed page. No server, no data collection.",
+  "permissions": ["storage", "unlimitedStorage", "tabs"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Feed Reader"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://discord.com/*", "https://*.discord.com/*"],
+      "js": ["page-spoof.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://discord.com/channels/*",
+        "https://*.discord.com/channels/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://localhost/*",
+        "http://127.0.0.1/*",
+        "https://*.lovable.app/*",
+        "https://*.lovableproject.com/*",
+        "https://*.vercel.app/*"
+      ],
+      "js": ["bridge.js"],
+      "run_at": "document_start"
+    }
+  ]
+}
