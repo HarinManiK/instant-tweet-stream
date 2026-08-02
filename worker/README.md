@@ -15,9 +15,9 @@ Long-running Node service. Connects to X filtered stream when triggered from the
    - **Start Command:** `node index.js`
    - **Instance Type:** Starter ($7/mo). Free tier sleeps, which breaks the stream.
 4. Add environment variables (Settings → Environment):
-   - `X_BEARER_TOKEN` — from developer.x.com → your project → Keys and tokens → Bearer Token.
-   - `FIREBASE_PROJECT_ID` — from Firebase console.
-   - `FIREBASE_SERVICE_ACCOUNT_JSON` — paste the entire contents of the JSON file you downloaded from Firebase → Project Settings → Service Accounts → Generate new private key.
+   - `X_BEARER_TOKEN`. From developer.x.com → your project → Keys and tokens → Bearer Token.
+   - `FIREBASE_PROJECT_ID`. From the Firebase console.
+   - `FIREBASE_SERVICE_ACCOUNT_JSON`. Paste the entire contents of the JSON file you downloaded from Firebase → Project Settings → Service Accounts → Generate new private key.
 5. Deploy. Open the live URL → should show `Tweet Stream Worker OK`. Logs should say `Worker started. Waiting for stream_state/main…`
 
 ## Local testing (optional)

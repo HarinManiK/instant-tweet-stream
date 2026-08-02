@@ -1,12 +1,12 @@
-// Light/dark theme, persisted in localStorage. Default is light (current look).
+// Light/dark theme, persisted in localStorage. Default is dark.
 
 const KEY = "tweet-stream-theme";
 
 export type Theme = "light" | "dark";
 
 export function getStoredTheme(): Theme {
-  if (typeof window === "undefined") return "light";
-  return localStorage.getItem(KEY) === "dark" ? "dark" : "light";
+  if (typeof window === "undefined") return "dark";
+  return localStorage.getItem(KEY) === "light" ? "light" : "dark";
 }
 
 export function applyTheme(theme: Theme) {
@@ -20,5 +20,10 @@ export function setTheme(theme: Theme) {
 }
 
 // Inline script string, run before hydration (in <head>) so the page never
-// flashes light before switching to a stored dark preference.
-export const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem("${KEY}");if(t==="dark")document.documentElement.classList.add("dark");}catch(e){}})();`;
+// flashes the wrong theme.
+//
+// The server already renders <html class="dark">, matching the default, so this
+// script only has work to do when someone has explicitly chosen light. Keeping
+// the server's markup equal to the default is what stops React reporting a
+// hydration mismatch on every single page load.
+export const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem("${KEY}");if(t==="light")document.documentElement.classList.remove("dark");}catch(e){}})();`;

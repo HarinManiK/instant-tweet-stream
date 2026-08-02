@@ -4,7 +4,7 @@ import { login, isAuthed } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
-    meta: [{ title: "Sign in — Tweet Stream" }],
+    meta: [{ title: "Sign in. Tweet Stream" }],
   }),
   component: LoginPage,
 });

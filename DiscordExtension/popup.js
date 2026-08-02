@@ -1,6 +1,6 @@
 // Feed Reader. Popup: shows status + opens the feed.
 
-// The deployed feed site. Change this if you move the site to another domain —
+// The deployed feed site. Change this if you move the site to another domain,
 // and add the new domain to the bridge.js entry in manifest.json too, or the
 // Discord column there will stay empty.
 const SITE_URL = "http://localhost:8080";

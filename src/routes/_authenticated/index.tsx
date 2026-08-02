@@ -4,12 +4,11 @@ import { logout } from "@/lib/auth";
 import { initNotificationSound, playNotificationSound } from "@/lib/notification-sound";
 import { TweetColumn } from "@/components/TweetColumn";
 import { DiscordColumn } from "@/components/DiscordColumn";
-import { StartStopButton } from "@/components/StartStopButton";
 import { SettingsPanel } from "@/components/SettingsPanel";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
-    meta: [{ title: "Live Feed — X + Discord" }],
+    meta: [{ title: "Live Feed. X + Discord" }],
   }),
   component: FeedPage,
 });
@@ -30,14 +29,17 @@ function FeedPage() {
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
       <header className="shrink-0 border-b border-border bg-background/80 backdrop-blur">
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-3 px-4 py-3">
           <h1 className="text-base font-semibold tracking-tight">Live Feed</h1>
-          <button
-            onClick={handleLogout}
-            className="text-xs text-muted-foreground hover:text-foreground"
-          >
-            Sign out
-          </button>
+          <div className="ml-auto flex items-center gap-3">
+            <SettingsPanel />
+            <button
+              onClick={handleLogout}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -46,12 +48,6 @@ function FeedPage() {
         <TweetColumn onNewTweet={ping} />
         <DiscordColumn onNewMessage={ping} />
       </main>
-
-      <div className="fixed bottom-6 left-1/2 z-20 -translate-x-1/2">
-        <StartStopButton />
-      </div>
-
-      <SettingsPanel />
     </div>
   );
 }

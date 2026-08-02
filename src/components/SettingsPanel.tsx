@@ -22,6 +22,8 @@ export function SettingsPanel() {
     setThemeState(getStoredTheme());
   }, []);
 
+  // Default matches lib/theme.ts, which now starts dark.
+
   useEffect(() => {
     const db = getDb();
     if (!db) return;
@@ -43,10 +45,10 @@ export function SettingsPanel() {
     <>
       <button
         onClick={() => setOpen(true)}
-        aria-label="Settings"
-        className="fixed bottom-6 right-6 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-lg transition-all hover:scale-105"
+        className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90"
       >
-        <Settings className="h-5 w-5" />
+        <Settings className="h-3.5 w-3.5" />
+        Settings
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>

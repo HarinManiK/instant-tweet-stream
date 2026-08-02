@@ -1,7 +1,7 @@
 // Firebase initialization.
 // Paste your Firebase web config below after creating the project.
 // Find it at: Firebase Console → Project Settings → General → Your apps → SDK setup → Config.
-// These values are SAFE to commit — they identify the project, not authenticate it.
+// These values are SAFE to commit. They identify the project, not authenticate it.
 // Security is enforced by Firestore Rules.
 
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";

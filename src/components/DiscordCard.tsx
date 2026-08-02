@@ -1,21 +1,15 @@
-import { CornerDownRight, ExternalLink, X } from "lucide-react";
+import { CornerDownRight, SquareArrowOutUpRight, X } from "lucide-react";
 import type { DiscordMessage } from "@/lib/types";
-
-/** Deep link straight to the message inside Discord. */
-function messageUrl(m: DiscordMessage): string | null {
-  if (!m.channelUrl) return null;
-  return `${m.channelUrl.replace(/\/+$/, "")}/${m.id}`;
-}
 
 export function DiscordCard({
   message,
   onRemove,
+  onOpen,
 }: {
   message: DiscordMessage;
   onRemove: (id: string) => void;
+  onOpen: (message: DiscordMessage) => void;
 }) {
-  const url = messageUrl(message);
-
   return (
     <article className="group animate-in fade-in relative rounded-xl border border-border bg-card p-4 shadow-sm duration-100">
       <button
@@ -31,16 +25,15 @@ export function DiscordCard({
           {message.server || "unknown"} <span className="text-muted-foreground">/</span> #
           {message.channel || "unknown"}
         </span>
-        {url && (
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
+        {message.channelUrl && (
+          <button
+            onClick={() => onOpen(message)}
             className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            aria-label="Open in Discord"
+            aria-label="Go to this channel's Discord tab"
+            title="Go to this channel's Discord tab"
           >
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
+            <SquareArrowOutUpRight className="h-3.5 w-3.5" />
+          </button>
         )}
       </div>
 

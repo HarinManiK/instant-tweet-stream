@@ -285,6 +285,27 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       return;
     }
 
+    // Jump to the Discord tab that already has this channel open, rather than
+    // opening a second tab on the same channel. The hosted feed page cannot do
+    // this itself (a web page has no chrome.tabs), so it asks us through bridge.js.
+    if (msg.type === "focus-channel") {
+      chrome.tabs.query({ url: KEEP_AWAKE_URLS }, (tabs) => {
+        const match =
+          !chrome.runtime.lastError &&
+          tabs &&
+          tabs.find((t) => t.url && t.url.indexOf(msg.path) !== -1);
+        if (match) {
+          chrome.tabs.update(match.id, { active: true });
+          chrome.windows.update(match.windowId, { focused: true });
+        } else if (msg.url) {
+          // That channel isn't open anywhere. Opening it is the only option left.
+          chrome.tabs.create({ url: msg.url });
+        }
+      });
+      sendResponse({ ok: true });
+      return;
+    }
+
     sendResponse({ ok: false, reason: "unknown-type" });
   })();
 

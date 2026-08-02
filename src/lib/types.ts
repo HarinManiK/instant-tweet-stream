@@ -21,7 +21,7 @@ export type Tweet = {
 };
 
 // A Discord message captured by the Feed Reader browser extension and handed to
-// this page through bridge.js. It never touches our server — see lib/discord.ts.
+// this page through bridge.js. It never touches our server (see lib/discord.ts).
 export type DiscordMessage = {
   id: string;
   author: string;

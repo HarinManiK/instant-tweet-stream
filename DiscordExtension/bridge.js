@@ -26,6 +26,8 @@
 //     window.postMessage({ __readerReq: true, type: "clear" }, "*");
 //     window.postMessage({ __readerReq: true, type: "set-capturing", value: <bool> }, "*");
 //     window.postMessage({ __readerReq: true, type: "delete", id: <string> }, "*");
+//     window.postMessage({ __readerReq: true, type: "focus-channel",
+//                          path: "/channels/<guild>/<channel>", url: <deep link> }, "*");
 //
 //   A <msg> is: { id, author, content, timestamp, server, channel,
 //                 replyToAuthor, replyToSnippet, channelUrl, source, ts, capturedAt }
@@ -74,6 +76,8 @@
       chrome.runtime.sendMessage({ type: "set-capturing", value: !!d.value });
     } else if (d.type === "delete") {
       if (d.id) chrome.runtime.sendMessage({ type: "delete", id: d.id });
+    } else if (d.type === "focus-channel") {
+      if (d.path) chrome.runtime.sendMessage({ type: "focus-channel", path: d.path, url: d.url });
     }
   });
 
