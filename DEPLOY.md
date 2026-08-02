@@ -29,31 +29,31 @@ independently, which is the main thing to understand.
          │ site reads live                         │
          ▼                                         ▼
   ┌──────────────────────────────────────────────────────┐
-  │ VERCEL — the website                                 │
+  │ VERCEL (the website)                                 │
   │   left column: X          right column: Discord      │
   └──────────────────────────────────────────────────────┘
 ```
 
-**Firebase (Firestore)** — the shared database. Three collections:
+**Firebase (Firestore)**. The shared database. Three collections:
 `tweets` (captured posts), `followed_handles` (who to follow),
 `stream_state/main` (a single on/off switch).
 
-**Render** — an always-on Node service, the code in `worker/`. It watches the
+**Render**. An always-on Node service, the code in `worker/`. It watches the
 on/off switch in Firestore. When you flip it to on, it opens a live connection
 to X and writes every matching tweet into Firestore. This is the only piece
 that talks to X, and the only piece that holds the X API key.
 
-**Vercel** — the website (everything outside `worker/`). It holds no secrets and
+**Vercel**. The website (everything outside `worker/`). It holds no secrets and
 talks to no API. It reads Firestore live and draws the left column.
 
-**Chrome extension** (`FeedReader/DiscordExtension`) — runs on your client's own
+**Chrome extension** (`DiscordExtension/`). Runs on your client's own
 PC. It reads Discord messages out of the tabs he already has open and pushes
 them straight into the right column of the website, inside his browser.
 
 > **Discord never touches Firebase, Render, or Vercel.** There is no Discord
 > server-side anything. That column is filled by his own machine, which is why
 > it is empty on his phone and empty when his PC is off. This isn't a bug or
-> something left unfinished — Discord has no feed a normal account can subscribe
+> something left unfinished. Discord has no feed a normal account can subscribe
 > to, and the alternative (a bot on his user token) gets accounts banned.
 
 ---
@@ -68,7 +68,7 @@ them straight into the right column of the website, inside his browser.
 | Firebase web config | committed in `src/lib/firebase.ts` | the website |
 | Site login | committed in `src/lib/auth.ts` | the website |
 
-The Firebase web config being in the source is **fine and normal** — it
+The Firebase web config being in the source is **fine and normal**. It
 identifies the project, it doesn't grant access. The X token and the service
 account are the real secrets, and both live only in Render's dashboard. Neither
 is ever in GitHub.
@@ -80,18 +80,18 @@ is ever in GitHub.
 ## 3. Deploying the change I just made
 
 I changed the **website** and the **extension**. I did not touch `worker/`, so
-**Render needs nothing** — don't redeploy it, don't touch its settings.
+**Render needs nothing**. Don't redeploy it, don't touch its settings.
 
-### Step 1 — put your real domain in two files
+### Step 1. Put your real domain in two files
 
 The extension only injects itself into pages whose address it recognises. Right
 now it recognises `localhost`, `*.lovable.app`, `*.lovableproject.com` and
 `*.vercel.app`. If your site is on a plain `something.vercel.app` URL, skip to
-Step 2 — it already matches.
+Step 2, it already matches.
 
 If you have a custom domain (say `feed.yourclient.com`), edit two files:
 
-**`FeedReader/DiscordExtension/manifest.json`** — find the `bridge.js` block and
+**`DiscordExtension/manifest.json`**. Find the `bridge.js` block and
 add your domain to the list:
 
 ```json
@@ -109,7 +109,7 @@ add your domain to the list:
 }
 ```
 
-**`FeedReader/DiscordExtension/popup.js`** — line near the top:
+**`DiscordExtension/popup.js`**. Line near the top:
 
 ```js
 const SITE_URL = "https://feed.yourclient.com";
@@ -118,7 +118,7 @@ const SITE_URL = "https://feed.yourclient.com";
 Get these wrong and the site loads fine but the Discord column permanently says
 "extension not detected". That's the single most likely thing to go wrong.
 
-### Step 2 — push to GitHub
+### Step 2. Push to GitHub
 
 ```bash
 git add -A
@@ -132,13 +132,13 @@ git commit -m "Add Discord column, two-column feed"
 git push
 ```
 
-### Step 3 — Vercel deploys itself
+### Step 3. Vercel deploys itself
 
 Vercel is watching your GitHub repo. Pushing is the deploy. Open your Vercel
 dashboard, watch the build go green (about a minute), open the site.
 
 You should see two columns. Left fills with tweets. Right says "Feed Reader
-extension not detected" — correct, because this browser doesn't have it yet.
+extension not detected", which is correct, because this browser doesn't have it yet.
 
 If the build fails, read the error in Vercel's log. To reproduce it locally:
 
@@ -146,26 +146,26 @@ If the build fails, read the error in Vercel's log. To reproduce it locally:
 npm run build
 ```
 
-### Step 4 — install the extension on your client's PC
+### Step 4. Install the extension on your client's PC
 
 This has to happen on the machine that will do the capturing. Send him the
 `DiscordExtension` folder (zip it), and these instructions:
 
-1. Unzip it somewhere permanent — **Documents, not Downloads.** If the folder
+1. Unzip it somewhere permanent (**Documents, not Downloads**). If the folder
    moves or gets deleted, the extension dies.
 2. Open `chrome://extensions`.
 3. Turn on **Developer mode**, top-right.
 4. Click **Load unpacked**, select the `DiscordExtension` folder.
 5. Open the Discord channels to follow, one tab each. **Reload any Discord tab
-   that was already open** — Chrome only injects into tabs opened after the
+   that was already open**. Chrome only injects into tabs opened after the
    extension was loaded.
 6. Open the feed site. The right column should now show a green dot instead of
    the yellow warning.
 
-### Step 5 — check it actually works
+### Step 5. Check it actually works
 
-- **Left column**: press the big round Start button at the bottom. The dot goes
-  green and says "Streaming". Tweets arrive within a minute or two.
+- **Left column**: the **Resume** button in the X column header. The dot beside
+  the heading turns green and starts pulsing. Posts arrive within a minute or two.
 - **Right column**: post a message in one of the followed Discord channels. It
   should appear within a second.
 
@@ -186,7 +186,7 @@ visible and plays an inaudible tone so Chrome won't freeze it), so the Discord
 tabs can be behind other windows. But a sleeping laptop captures nothing.
 
 If he closes the feed site tab, capture keeps running and the messages are held
-on his disk — they reappear when he opens the site again.
+on his disk. They reappear when he opens the site again.
 
 ---
 
@@ -198,7 +198,7 @@ you never redeploy the website for this.
 ### Get the new token
 
 1. Go to <https://developer.x.com> → **Developer Portal** → **Projects & Apps**.
-2. Click the app you're already using — **use the same app, don't create a new
+2. Click the app you're already using. **Use the same app, don't create a new
    one.** A new app can land on a plan without access to the live stream
    endpoint this worker needs, and then nothing works and it isn't obvious why.
 3. **Keys and tokens** tab → **Bearer Token** → **Regenerate**.
@@ -225,11 +225,11 @@ Stream connected with 1 rule group(s).
 ```
 
 The worker remembers the on/off switch was on and reconnects by itself. If
-tweets don't resume within a few minutes, open the site and press the round
-button twice — off, then on.
+tweets don't resume within a few minutes, open the site and press the X column's
+header button twice (Pause, then Resume).
 
-If the token is bad, the error shows up in red text under the round button on
-the site itself, and in Render's logs.
+If the token is bad, the error shows up in a red box at the top of the X column
+on the site itself, and in Render's logs.
 
 ---
 
@@ -251,22 +251,23 @@ it. The selectors are at the top of `content.js`. This is the known long-term
 maintenance cost of doing Discord this way.
 
 **Left column has no tweets**
-In order: is Render **Live**? Is the round button green/"Streaming"? Are there
-handles added under the **Accounts** dropdown? Is there red error text under the
-round button? Render's logs will say what X rejected.
+In order: is Render **Live**? Is the dot in the X column header green? Does its
+button say **Pause** (meaning running) rather than **Resume**? Are there handles
+added under the **Accounts** dropdown? Is there a red error box at the top of the
+column? Render's logs will say what X rejected.
 
 **Render service is asleep**
 The free tier sleeps, which permanently breaks the stream. This needs the paid
 Starter instance.
 
-**Is the worker alive?** Open your Render service's URL directly — it should say
+**Is the worker alive?** Open your Render service's URL directly. It should say
 `Tweet Stream Worker OK`. Add `/health` for a JSON status.
 
 ---
 
 ## 7. Known issues, deliberately left alone
 
-Flagged and consciously deferred — not oversights.
+Flagged and consciously deferred, not oversights.
 
 **The site's login is cosmetic.** The username and password are in
 `src/lib/auth.ts`, which ships to the browser. Anyone who opens developer tools
@@ -278,4 +279,4 @@ the URL, and don't let it get indexed.**
 
 **Nothing is ever deleted from `tweets`.** It grows forever and Firestore bills
 on storage. A TTL policy in the Firebase console solves it in a few clicks.
-(The Discord side does self-limit — it keeps the newest 2000 on disk.)
+(The Discord side does self-limit. It keeps the newest 2000 on disk.)

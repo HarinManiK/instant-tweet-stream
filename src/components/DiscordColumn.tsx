@@ -2,7 +2,7 @@ import { useDiscordFeed } from "@/lib/discord";
 import { DiscordCard } from "@/components/DiscordCard";
 
 export function DiscordColumn({ onNewMessage }: { onNewMessage: () => void }) {
-  const { messages, capturing, connected, setCapturing, clear, remove } =
+  const { messages, capturing, connected, setCapturing, clear, remove, focusChannel } =
     useDiscordFeed(onNewMessage);
 
   return (
@@ -38,19 +38,19 @@ export function DiscordColumn({ onNewMessage }: { onNewMessage: () => void }) {
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4 pb-28">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
         {!connected && <ExtensionMissing />}
 
         {connected && messages.length === 0 && (
           <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
             {capturing
-              ? "Listening. Keep your Discord tabs open — messages appear here as they arrive."
+              ? "Listening. Keep your Discord tabs open. Messages appear here as they arrive."
               : "Capture is paused."}
           </div>
         )}
 
         {messages.map((m) => (
-          <DiscordCard key={m.id} message={m} onRemove={remove} />
+          <DiscordCard key={m.id} message={m} onRemove={remove} onOpen={focusChannel} />
         ))}
       </div>
     </section>
@@ -64,8 +64,8 @@ function ExtensionMissing() {
         Feed Reader extension not detected
       </p>
       <p className="mt-1 text-muted-foreground">
-        Discord messages are captured on this device by the Feed Reader Chrome extension —
-        they never touch a server, so this column only fills in on a machine running it.
+        Discord messages are captured on this device by the Feed Reader Chrome extension.
+        They never touch a server, so this column only fills in on a machine running it.
       </p>
       <ol className="mt-3 list-decimal space-y-1 pl-4 text-xs text-muted-foreground">
         <li>

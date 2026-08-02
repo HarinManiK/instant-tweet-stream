@@ -17,7 +17,7 @@ Firestore. It runs whether or not your computer is on, so the left column works
 anywhere, including on a phone.
 
 **Discord is device-local.** Discord has no live feed a normal user account can
-subscribe to — a bot needs each server's admin to invite it, and a self-bot on
+subscribe to. A bot needs each server's admin to invite it, and a self-bot on
 your own user token is a ToS violation that gets accounts banned. So Discord is
 captured by a Chrome extension that reads messages out of the tabs you already
 have open, stores them in IndexedDB, and hands them to the page inside your own
@@ -63,7 +63,7 @@ The site comes up on <http://localhost:8080>. The extension already recognises
 | `followed_handles` | Accounts to follow, one doc per handle |
 | `stream_state/main` | A single doc: the stream's on/off switch |
 
-The Firebase web config in `src/lib/firebase.ts` is committed on purpose — it
+The Firebase web config in `src/lib/firebase.ts` is committed on purpose. It
 identifies the project, it doesn't grant access. The real secrets (the X bearer
 token and the Firebase service account) live only in Render's environment.
 

@@ -5,7 +5,7 @@ device**, and streams them into the Discord column of the hosted feed site. No
 server, no data collection. The messages never leave your browser.
 
 This is a real Chrome extension (Manifest V3). The **capturing logic is the same
-one that has always worked** — snowflake time-filtering so only new messages
+one that has always worked**. Snowflake time-filtering so only new messages
 count, exact-id lookups so replies don't grab the wrong text, emoji/sticker/GIF/
 image handling, single-page-app re-binding.
 
@@ -39,7 +39,7 @@ fills in on the machine running this extension**, and only while Chrome is open.
   doesn't punch a hole in the record.
 - **bridge.js**. Relays the background worker into the hosted site over
   `window.postMessage`. The protocol is documented at the top of that file.
-- **viewer.html**. A local capture check — proves capture works without the site.
+- **viewer.html**. A local capture check. Proves capture works without the site.
 - **popup**. Status, open the live feed, open the local check.
 
 ## Install (developer mode)

@@ -5,7 +5,7 @@
 // out of the DOM of the Discord tabs you already have open, stores them in
 // IndexedDB, and its bridge.js content script relays them into this page over
 // window.postMessage. Nothing Discord-related ever reaches our server or
-// Firestore — unlike tweets, these messages exist only in this browser.
+// Firestore. Unlike tweets, these messages exist only in this browser.
 //
 // Protocol reference lives at the top of the extension's bridge.js.
 
@@ -113,5 +113,26 @@ export function useDiscordFeed(onNewMessage?: () => void) {
     post({ type: "delete", id });
   }, []);
 
-  return { messages, capturing, connected, setCapturing, clear, remove };
+  /**
+   * Focus the Discord tab already showing this message's channel, instead of
+   * opening a duplicate tab on it. A web page has no access to browser tabs, so
+   * the extension does the switching. It falls back to opening the channel only
+   * when no tab has it open.
+   */
+  const focusChannel = useCallback((m: DiscordMessage) => {
+    if (!m.channelUrl) return;
+    let path = m.channelUrl;
+    try {
+      path = new URL(m.channelUrl).pathname;
+    } catch {
+      // Not a parseable URL. Matching on the raw string is still better than nothing.
+    }
+    post({
+      type: "focus-channel",
+      path,
+      url: `${m.channelUrl.replace(/\/+$/, "")}/${m.id}`,
+    });
+  }, []);
+
+  return { messages, capturing, connected, setCapturing, clear, remove, focusChannel };
 }

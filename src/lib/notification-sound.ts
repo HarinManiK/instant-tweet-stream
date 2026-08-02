@@ -18,7 +18,7 @@ let buffer: AudioBuffer | null = null;
  * "audible" and won't freeze it after a few minutes in the background.
  *
  * Without this, a feed tab sitting behind another tab gets frozen and stops
- * ringing on new messages — which looks exactly like the feed having died.
+ * ringing on new messages, which looks exactly like the feed having died.
  * The extension plays the same trick inside Discord's own tabs (page-spoof.js).
  */
 function startKeepAlive(audioCtx: AudioContext) {

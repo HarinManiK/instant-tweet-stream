@@ -1,4 +1,4 @@
-// Simple hardcoded login. NOT secure — anyone who views page source can read the password.
+// Simple hardcoded login. NOT secure. Anyone who views page source can read the password.
 // Fine for personal use only.
 
 export const ADMIN_USERNAME = "admin";
