@@ -131,6 +131,17 @@
     };
   }
 
+  /**
+   * The same attachment turns up more than once in the DOM: as the <a> wrapping
+   * the preview (cdn.discordapp.com) and as the <img> inside it
+   * (media.discordapp.net, resized). Both carry the same signed path, so key on
+   * that to avoid emitting one image twice.
+   */
+  function attachmentKey(url) {
+    const m = String(url).match(/\/attachments\/[^?#]+/);
+    return m ? m[0] : String(url).split("?")[0];
+  }
+
   /** Describe non-text content (stickers, GIFs, image attachments) attached to the message. */
   function extractMedia(id) {
     const acc = document.getElementById("message-accessories-" + id);
@@ -145,11 +156,28 @@
     if (gif) bits.push("[GIF: " + (gif.getAttribute("src") || "") + "]");
     else if (acc.querySelector('[class*="gifTag"]')) bits.push("[GIF]");
 
-    acc
-      .querySelectorAll(
-        'img[src*="cdn.discordapp.com/attachments"], img[src*="media.discordapp.net/attachments"]'
-      )
-      .forEach((img) => bits.push("[Image: " + img.src + "]"));
+    // Prefer the <img> src: it is the copy the browser already fetched, so we
+    // know it resolves. Fall back to the link's href for an attachment whose
+    // image element has not been created yet.
+    const images = new Map(); // attachment path -> best url
+    acc.querySelectorAll('img[src*="/attachments/"]').forEach((img) => {
+      images.set(attachmentKey(img.src), img.src);
+    });
+    acc.querySelectorAll('a[href*="/attachments/"]').forEach((a) => {
+      const key = attachmentKey(a.href);
+      if (!images.has(key)) images.set(key, a.href);
+    });
+
+    // A posted link (a chart, a tweet) renders as an embed whose image is not an
+    // attachment. Those are worth showing too. The size guard keeps out the
+    // favicon and author avatar that sit in the same embed.
+    acc.querySelectorAll('[class*="embed"] img[src^="http"]').forEach((img) => {
+      if ((img.naturalWidth || img.width || 0) < 100) return;
+      const key = attachmentKey(img.src);
+      if (!images.has(key)) images.set(key, img.src);
+    });
+
+    images.forEach((url) => bits.push("[Image: " + url + "]"));
 
     // Something is attached but we didn't recognise it (at least don't drop the message silently).
     if (bits.length === 0 && acc.children.length > 0) bits.push("[media]");
@@ -157,22 +185,58 @@
     return bits.join(" ");
   }
 
-  /** Extract a captured message from a <li>, or null if there's nothing capturable. */
+  // Discord paints a message's text immediately and its attachments a beat later:
+  // the <img> only exists once the CDN answers. Capturing instantly is the whole
+  // point of this thing, so we send the message straight away and then look again
+  // a few times, patching the stored copy the moment the image resolves.
+  const MEDIA_RECHECK_MS = [400, 1200, 3000, 6000];
+
+  function watchMedia(id, baseText, firstMedia) {
+    let best = firstMedia || "";
+    MEDIA_RECHECK_MS.forEach((delay) => {
+      setTimeout(() => {
+        const found = extractMedia(id);
+        // Only ever patch upward. A real "[Image: https://...]" is longer than
+        // the "[media]" placeholder it replaces, so length is a fair stand-in
+        // for "this rescan learned something".
+        if (!found || found === best || found.length <= best.length) return;
+        best = found;
+        const content = baseText ? baseText + " " + found : found;
+        try {
+          chrome.runtime.sendMessage({ type: "update-media", id, content }).catch(() => {});
+        } catch (e) {
+          // Extension context invalidated. Nothing to do.
+        }
+        log("media resolved for", id + ":", found.slice(0, 80));
+      }, delay);
+    });
+  }
+
+  /** Is this id new enough to capture, or is it rendered history? */
+  function isFresh(id) {
+    const createdMs = messageTimeMs(id);
+    return !createdMs || createdMs >= START_TIME;
+  }
+
+  /**
+   * Extract a captured message from a <li>, or null if there's nothing capturable.
+   * Returns the text and the media separately alongside the message so watchMedia
+   * can rebuild the content if an attachment resolves later.
+   */
   function extract(li) {
     const id = parseMessageId(li);
     if (!id) return null;
 
     // Skip messages created before we started watching (rendered history, not a fresh arrival).
-    const createdMs = messageTimeMs(id);
-    if (createdMs && createdMs < START_TIME) return null;
+    if (!isFresh(id)) return null;
 
     // THIS message's own content, by exact id (a reply embeds the quoted message under a different id).
     const contentEl = document.getElementById("message-content-" + id);
-    let content = contentEl ? readText(contentEl).trim() : "";
+    const baseText = contentEl ? readText(contentEl).trim() : "";
 
     // Fold in stickers / GIFs / images so non-text messages aren't dropped.
     const media = extractMedia(id);
-    if (media) content = content ? content + " " + media : media;
+    const content = media ? (baseText ? baseText + " " + media : media) : baseText;
 
     if (!content) return null; // system message / divider / nothing to capture.
 
@@ -187,15 +251,19 @@
     const reply = extractReply(id);
 
     return {
-      id,
-      author,
-      content,
-      timestamp,
-      server,
-      channel,
-      replyToAuthor: reply.author,
-      replyToSnippet: reply.snippet,
-      channelUrl: location.href,
+      baseText,
+      media,
+      msg: {
+        id,
+        author,
+        content,
+        timestamp,
+        server,
+        channel,
+        replyToAuthor: reply.author,
+        replyToSnippet: reply.snippet,
+        channelUrl: location.href,
+      },
     };
   }
 
@@ -210,15 +278,29 @@
     }
   }
 
+  // How many times to re-look at a message that had nothing capturable yet.
+  const EMPTY_RETRY_MS = [300, 900, 2000];
+
   /** Handle one message node: dedupe, extract, send. */
-  function process(li) {
+  function process(li, attempt) {
     const id = parseMessageId(li);
     if (!id || seen.has(id)) return;
-    const msg = extract(li);
-    if (!msg) return;
+
+    const res = extract(li);
+    if (!res) {
+      // An image-only message can render its shell before either its text or its
+      // attachment exists, which used to make us drop it for good. Look again.
+      const n = attempt || 0;
+      if (n < EMPTY_RETRY_MS.length && li.isConnected && isFresh(id)) {
+        setTimeout(() => process(li, n + 1), EMPTY_RETRY_MS[n]);
+      }
+      return;
+    }
+
     seen.add(id);
-    send(msg);
-    log("captured:", msg.author + ":", msg.content.slice(0, 80));
+    send(res.msg);
+    log("captured:", res.msg.author + ":", res.msg.content.slice(0, 80));
+    watchMedia(id, res.baseText, res.media);
   }
 
   /** Start observing a given message list for inserted messages. */
@@ -235,7 +317,9 @@
           if (node.matches && node.matches(MSG_SELECTOR)) {
             process(node);
           } else if (node.querySelectorAll) {
-            node.querySelectorAll(MSG_SELECTOR).forEach(process);
+            // Wrapped, not passed by reference: forEach hands the callback an
+            // index, which process() would read as a retry count.
+            node.querySelectorAll(MSG_SELECTOR).forEach((el) => process(el));
           }
         }
       }

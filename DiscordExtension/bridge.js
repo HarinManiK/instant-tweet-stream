@@ -18,8 +18,10 @@
 //     { __reader: true, type: "state",   capturing: <bool> }
 //     { __reader: true, type: "history", messages: [ <msg>, ... ] }  // on every (re)connect
 //     { __reader: true, type: "message", message: <msg>   }  // each new capture, live
+//     { __reader: true, type: "updated", message: <msg>   }  // a stored msg changed
 //     { __reader: true, type: "clear"                     }  // history was wiped
 //     { __reader: true, type: "deleted", id: <string>     }  // one message removed
+//     { __reader: true, type: "focus-result", token: <string>, focused: <bool> }
 //
 //   From page -> extension  (window.postMessage from the page):
 //     window.postMessage({ __readerReq: true, type: "hello" }, "*");
@@ -27,7 +29,7 @@
 //     window.postMessage({ __readerReq: true, type: "set-capturing", value: <bool> }, "*");
 //     window.postMessage({ __readerReq: true, type: "delete", id: <string> }, "*");
 //     window.postMessage({ __readerReq: true, type: "focus-channel",
-//                          path: "/channels/<guild>/<channel>", url: <deep link> }, "*");
+//                          path: "/channels/<guild>/<channel>", token: <string> }, "*");
 //
 //   A <msg> is: { id, author, content, timestamp, server, channel,
 //                 replyToAuthor, replyToSnippet, channelUrl, source, ts, capturedAt }
@@ -77,7 +79,23 @@
     } else if (d.type === "delete") {
       if (d.id) chrome.runtime.sendMessage({ type: "delete", id: d.id });
     } else if (d.type === "focus-channel") {
-      if (d.path) chrome.runtime.sendMessage({ type: "focus-channel", path: d.path, url: d.url });
+      if (!d.path) return;
+      // The page waits on this answer, so reply either way. A thrown call or a
+      // dead worker both mean "not focused", which makes the page open the
+      // channel itself instead of the click doing nothing at all.
+      const reply = (focused) => {
+        window.postMessage(
+          { __reader: true, type: "focus-result", token: d.token, focused: !!focused },
+          "*"
+        );
+      };
+      try {
+        chrome.runtime.sendMessage({ type: "focus-channel", path: d.path }, (res) => {
+          reply(!chrome.runtime.lastError && res && res.focused);
+        });
+      } catch (e) {
+        reply(false);
+      }
     }
   });
 

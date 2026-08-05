@@ -20,8 +20,10 @@ type BridgeEvent =
   | { type: "state"; capturing: boolean }
   | { type: "history"; messages: DiscordMessage[] }
   | { type: "message"; message: DiscordMessage }
+  | { type: "updated"; message: DiscordMessage }
   | { type: "clear" }
-  | { type: "deleted"; id: string };
+  | { type: "deleted"; id: string }
+  | { type: "focus-result"; token: string; focused: boolean };
 
 function post(req: Record<string, unknown>) {
   if (typeof window === "undefined") return;
@@ -73,6 +75,16 @@ export function useDiscordFeed(onNewMessage?: () => void) {
         return;
       }
 
+      // An attachment finished loading in Discord after we'd already shown the
+      // message, so the extension re-sent it with the image url filled in.
+      // Swap the card's data in place. It is the same message, so no sound.
+      if (data.type === "updated") {
+        const m = data.message;
+        if (!m?.id) return;
+        setMessages((prev) => prev.map((x) => (x.id === m.id ? m : x)));
+        return;
+      }
+
       if (data.type === "state") {
         setCapturingState(data.capturing);
         return;
@@ -116,22 +128,48 @@ export function useDiscordFeed(onNewMessage?: () => void) {
   /**
    * Focus the Discord tab already showing this message's channel, instead of
    * opening a duplicate tab on it. A web page has no access to browser tabs, so
-   * the extension does the switching. It falls back to opening the channel only
-   * when no tab has it open.
+   * the extension does the switching.
+   *
+   * If the extension does not confirm a focus quickly (no tab has that channel
+   * open, the service worker is asleep, the extension is not installed at all),
+   * we open the channel ourselves. The click always does something.
+   *
+   * The fallback stays inside Chrome's transient user activation window, so
+   * window.open here is not treated as a popup.
    */
   const focusChannel = useCallback((m: DiscordMessage) => {
     if (!m.channelUrl) return;
+
+    const deepLink = `${m.channelUrl.replace(/\/+$/, "")}/${m.id}`;
     let path = m.channelUrl;
     try {
       path = new URL(m.channelUrl).pathname;
     } catch {
       // Not a parseable URL. Matching on the raw string is still better than nothing.
     }
-    post({
-      type: "focus-channel",
-      path,
-      url: `${m.channelUrl.replace(/\/+$/, "")}/${m.id}`,
-    });
+
+    // Ties this request to its answer, so two quick clicks can't cross wires.
+    const token = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    let settled = false;
+
+    function finish(focused: boolean) {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      window.removeEventListener("message", onResult);
+      if (!focused) window.open(deepLink, "_blank", "noopener,noreferrer");
+    }
+
+    function onResult(e: MessageEvent) {
+      if (e.source !== window) return;
+      const d = e.data as { __reader?: boolean; type?: string; token?: string; focused?: boolean };
+      if (!d || d.__reader !== true || d.type !== "focus-result" || d.token !== token) return;
+      finish(!!d.focused);
+    }
+
+    window.addEventListener("message", onResult);
+    const timer = window.setTimeout(() => finish(false), 600);
+    post({ type: "focus-channel", path, token });
   }, []);
 
   return { messages, capturing, connected, setCapturing, clear, remove, focusChannel };
