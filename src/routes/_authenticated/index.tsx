@@ -8,7 +8,7 @@ import { SettingsPanel } from "@/components/SettingsPanel";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
-    meta: [{ title: "Live Feed. X + Discord" }],
+    meta: [{ title: "InstantFeed (X + Discord)" }],
   }),
   component: FeedPage,
 });
@@ -30,7 +30,7 @@ function FeedPage() {
     <div className="flex h-screen flex-col bg-background text-foreground">
       <header className="shrink-0 border-b border-border bg-background/80 backdrop-blur">
         <div className="flex items-center gap-3 px-4 py-3">
-          <h1 className="text-base font-semibold tracking-tight">Live Feed</h1>
+          <h1 className="text-base font-semibold tracking-tight">InstantFeed</h1>
           <div className="ml-auto flex items-center gap-3">
             <SettingsPanel />
             <button

@@ -124,6 +124,28 @@ function count() {
   );
 }
 
+function getMessage(id) {
+  return store("readonly").then(
+    (s) =>
+      new Promise((res) => {
+        const r = s.get(id);
+        r.onsuccess = () => res(r.result || null);
+        r.onerror = () => res(null);
+      })
+  );
+}
+
+function putMessage(rec) {
+  return store("readwrite").then(
+    (s) =>
+      new Promise((res) => {
+        const r = s.put(rec);
+        r.onsuccess = () => res(true);
+        r.onerror = () => res(false);
+      })
+  );
+}
+
 function deleteMessage(id) {
   return store("readwrite").then(
     (s) =>
@@ -259,6 +281,23 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       return;
     }
 
+    // Discord fills a message's attachments in a moment after it renders the
+    // text, so the content script re-checks and sends the richer version here.
+    // We patch the stored record in place and tell viewers to redraw that card.
+    if (msg.type === "update-media") {
+      if (!msg.id || !msg.content) {
+        sendResponse({ ok: false });
+        return;
+      }
+      const rec = await getMessage(msg.id);
+      if (rec && rec.content !== msg.content) {
+        rec.content = msg.content;
+        if (await putMessage(rec)) broadcast({ type: "updated", message: rec });
+      }
+      sendResponse({ ok: true });
+      return;
+    }
+
     if (msg.type === "get-status") {
       sendResponse({ capturing: await isCapturing(), count: await count() });
       return;
@@ -288,21 +327,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Jump to the Discord tab that already has this channel open, rather than
     // opening a second tab on the same channel. The hosted feed page cannot do
     // this itself (a web page has no chrome.tabs), so it asks us through bridge.js.
+    //
+    // We answer truthfully whether a tab was actually focused. If not, the page
+    // opens the channel itself. Doing the fallback there rather than here means
+    // the button still works when this worker is asleep or the extension is gone.
     if (msg.type === "focus-channel") {
-      chrome.tabs.query({ url: KEEP_AWAKE_URLS }, (tabs) => {
-        const match =
-          !chrome.runtime.lastError &&
-          tabs &&
-          tabs.find((t) => t.url && t.url.indexOf(msg.path) !== -1);
-        if (match) {
-          chrome.tabs.update(match.id, { active: true });
-          chrome.windows.update(match.windowId, { focused: true });
-        } else if (msg.url) {
-          // That channel isn't open anywhere. Opening it is the only option left.
-          chrome.tabs.create({ url: msg.url });
-        }
-      });
-      sendResponse({ ok: true });
+      sendResponse({ ok: true, focused: await focusChannelTab(msg.path) });
       return;
     }
 
@@ -315,6 +345,31 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // ---- Keep Discord capture tabs from being auto-discarded (unloaded) by Chrome -
 
 const KEEP_AWAKE_URLS = ["*://discord.com/*", "*://*.discord.com/*"];
+
+/**
+ * Bring the Discord tab showing `path` (e.g. "/channels/123/456") to the front,
+ * along with the window holding it. Resolves false if no tab has it open, or if
+ * we lack the access to look, so the caller can fall back to opening it.
+ */
+function focusChannelTab(path) {
+  return new Promise((resolve) => {
+    if (!path) return resolve(false);
+    chrome.tabs.query({ url: KEEP_AWAKE_URLS }, (tabs) => {
+      if (chrome.runtime.lastError || !tabs || !tabs.length) return resolve(false);
+      const match = tabs.find((t) => t.url && t.url.indexOf(path) !== -1);
+      if (!match) return resolve(false);
+      try {
+        chrome.tabs.update(match.id, { active: true });
+        // Focusing the tab is not enough when it lives in another window: without
+        // this the window stays behind and nothing appears to happen.
+        chrome.windows.update(match.windowId, { focused: true });
+        resolve(true);
+      } catch (e) {
+        resolve(false);
+      }
+    });
+  });
+}
 
 function isCaptureTab(url) {
   return !!url && /(^|\.)discord\.com/.test(url);

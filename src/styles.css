@@ -141,4 +141,48 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+
+  /* Scrollbars.
+     Chrome's default is a wide light-grey bar that sits badly against a dark
+     feed. These are slim, themed, and only show themselves on hover, so a
+     column of messages reads as one surface instead of two. Firefox gets the
+     standard properties; Chrome and Edge get the ::-webkit- ones. */
+  /* Firefox only. Chrome 121+ understands these too, but honouring them makes it
+     ignore the ::-webkit- rules below, which give us the nicer inset thumb. */
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(in oklab, var(--color-foreground) 25%, transparent) transparent;
+    }
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Mixed against the foreground rather than pinned to --border, which is almost
+     the background colour in dark mode and left the thumb invisible. This reads
+     in both themes without needing a light/dark override. */
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklab, var(--color-foreground) 22%, transparent);
+    border-radius: 9999px;
+    /* Transparent border plus background-clip is the trick that insets the
+       thumb, leaving breathing room on both sides of a 10px track. */
+    border: 3px solid transparent;
+    background-clip: content-box;
+    transition: background-color 120ms ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklab, var(--color-foreground) 45%, transparent);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
